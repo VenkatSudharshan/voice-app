@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -75,41 +75,23 @@ const mockTranscript = [
 
 interface TranscriptViewProps {
   className?: string
+  transcriptData?: any
 }
 
-export default function TranscriptView({ className }: TranscriptViewProps = {}) {
-  const [transcript, setTranscript] = useState(mockTranscript)
-  const [editingSpeaker, setEditingSpeaker] = useState<number | null>(null)
-  const [speakerName, setSpeakerName] = useState("")
+export default function TranscriptView({ className, transcriptData }: TranscriptViewProps = {}) {
+  const [transcript, setTranscript] = useState<string[]>([])
   const { toast } = useToast()
 
-  const handleEditSpeaker = (id: number, currentName: string) => {
-    setEditingSpeaker(id)
-    setSpeakerName(currentName)
-  }
-
-  const handleSaveSpeaker = (id: number) => {
-    if (speakerName.trim()) {
-      setTranscript(
-        transcript.map((item) =>
-          item.speaker === transcript.find((t) => t.id === id)?.speaker
-            ? { ...item, speaker: speakerName.trim() }
-            : item,
-        ),
-      )
-      setEditingSpeaker(null)
-      setSpeakerName("")
-
-      toast({
-        title: "Speaker name updated",
-        description: "The speaker name has been successfully updated",
-      })
+  useEffect(() => {
+    if (transcriptData?.segments) {
+      setTranscript(transcriptData.segments)
     }
-  }
+  }, [transcriptData])
 
   const handleExport = () => {
-    const transcriptText = transcript.map((item) => `[${item.timestamp}] ${item.speaker}: ${item.text}`).join("\n\n")
+    if (!transcript.length) return
 
+    const transcriptText = transcript.join("\n\n")
     const blob = new Blob([transcriptText], { type: "text/plain" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
@@ -139,50 +121,11 @@ export default function TranscriptView({ className }: TranscriptViewProps = {}) 
       </CardHeader>
       <CardContent className="flex-1 overflow-hidden">
         <ScrollArea className="h-[520px] pr-4">
-          {transcript.map((item, index) => (
-            <div key={item.id} className="mb-6">
-              <div className="flex items-center mb-2">
-                <div className="flex items-center">
-                  <div
-                    className={`w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center`}
-                  >
-                    <UserCircle className="h-5 w-5 text-white" />
-                  </div>
-                  {editingSpeaker === item.id ? (
-                    <div className="flex items-center gap-2 ml-2">
-                      <Input
-                        value={speakerName}
-                        onChange={(e) => setSpeakerName(e.target.value)}
-                        className="h-8 w-40 border-purple-300 focus-visible:ring-purple-500"
-                        autoFocus
-                      />
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleSaveSpeaker(item.id)}
-                        className="h-8 px-2 hover:bg-purple-100 hover:text-purple-700"
-                      >
-                        <Save className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 ml-2">
-                      <span className="font-medium">{item.speaker}</span>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleEditSpeaker(item.id, item.speaker)}
-                        className="h-6 w-6 p-0 hover:bg-purple-100 hover:text-purple-700"
-                      >
-                        <Edit className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
-                <span className="text-xs text-muted-foreground ml-auto">{item.timestamp}</span>
+          {transcript.map((segment: string, index: number) => (
+            <div key={index} className="mb-6">
+              <div className="transcript-segment bg-muted p-4 rounded-lg">
+                <p className="text-sm">{segment}</p>
               </div>
-              <p className="text-sm pl-7">{item.text}</p>
-              {index < transcript.length - 1 && <Separator className="mt-4" />}
             </div>
           ))}
         </ScrollArea>

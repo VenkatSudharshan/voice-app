@@ -20,7 +20,11 @@ export default function VoiceTranscriber() {
   const [audioUrl, setAudioUrl] = useState("")
   const [keywords, setKeywords] = useState("")
   const [hasTranscript, setHasTranscript] = useState(false)
+  const [transcriptData, setTranscriptData] = useState(null)
   const { toast } = useToast()
+
+  const BEAM_AUTH_TOKEN = "2qhg9ZY4qEVtI6ufgv5vZTb9M98N9slut_Xc47gR0zX-lP8c4wMwJ3KLh-xPcXxUiMJxQoP5MsoDApreCFbZdw=="
+  const BEAM_URL = "https://whisperx-deployment-a100-69260af-v5.app.beam.cloud"
 
   const handleSubmit = async () => {
     if (!audioFile && !audioUrl) {
@@ -34,15 +38,37 @@ export default function VoiceTranscriber() {
 
     setIsProcessing(true)
 
-    // Simulate processing
-    setTimeout(() => {
-      setIsProcessing(false)
+    try {
+      const response = await fetch(BEAM_URL, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${BEAM_AUTH_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: audioUrl })
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      setTranscriptData(data)
       setHasTranscript(true)
+      
       toast({
         title: "Processing complete",
         description: "Your audio has been successfully transcribed",
       })
-    }, 3000)
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to transcribe audio",
+        variant: "destructive",
+      })
+    } finally {
+      setIsProcessing(false)
+    }
   }
 
   const resetForm = () => {
@@ -123,7 +149,7 @@ export default function VoiceTranscriber() {
             </CardHeader>
             <CardContent className="flex-1 overflow-hidden">
               {hasTranscript ? (
-                <TranscriptView />
+                <TranscriptView transcriptData={transcriptData} />
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-center p-6">
                   <div className="w-24 h-24 mb-6 relative floating">
