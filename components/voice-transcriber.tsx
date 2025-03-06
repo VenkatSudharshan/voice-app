@@ -111,23 +111,30 @@ export default function VoiceTranscriber() {
                   className="resize-none h-20"
                 />
               </div>
-              <Button
-                onClick={handleSubmit}
-                disabled={isProcessing}
-                className="w-full fancy-button bg-gradient-to-r from-purple-600 to-blue-500 text-white hover:shadow-lg transition-all duration-300"
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <Mic className="mr-2 h-4 w-4" />
-                    Transcribe Audio
-                  </>
+              <div className="space-y-2">
+                <Button
+                  onClick={handleSubmit}
+                  disabled={isProcessing}
+                  className="w-full fancy-button bg-gradient-to-r from-purple-600 to-blue-500 text-white hover:shadow-lg transition-all duration-300"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="mr-2 h-4 w-4" />
+                      Transcribe Audio
+                    </>
+                  )}
+                </Button>
+                {isProcessing && (
+                  <p className="text-sm text-muted-foreground text-center animate-pulse">
+                    File processing... Transcription will be ready in 3-5 minutes
+                  </p>
                 )}
-              </Button>
+              </div>
             </div>
           </div>
         </CardContent>
