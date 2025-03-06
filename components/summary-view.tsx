@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Download } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
+import { useMemo } from "react"
 
 // Mock summary data
 const mockSummary = {
@@ -25,11 +26,20 @@ const mockSummary = {
 }
 
 interface SummaryViewProps {
-  className?: string
+  summary: string
 }
 
-export default function SummaryView({ className }: SummaryViewProps = {}) {
+export default function SummaryView({ summary }: SummaryViewProps) {
   const { toast } = useToast()
+
+  const formattedSummary = useMemo(() => {
+    return summary.split('\n').map((line, index) => {
+      if (line.match(/^[0-9]+\.|[📝🎯🤝📅]/)) {
+        return <h3 key={index} className="font-semibold text-primary">{line}</h3>
+      }
+      return <p key={index} className="text-sm">{line}</p>
+    })
+  }, [summary])
 
   const handleExport = () => {
     const summaryText = `
@@ -62,7 +72,7 @@ ${mockSummary.conclusion}
   }
 
   return (
-    <Card className={`h-[600px] flex flex-col ${className}`}>
+    <Card className={`h-[600px] flex flex-col`}>
       <CardHeader className="pb-2">
         <CardTitle className="flex justify-between items-center text-lg">
           <span>Summary</span>
@@ -74,45 +84,8 @@ ${mockSummary.conclusion}
       </CardHeader>
       <CardContent className="flex-1 overflow-hidden">
         <ScrollArea className="h-[520px] pr-4">
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-semibold">{mockSummary.title}</h3>
-              <div className="flex flex-wrap gap-x-6 gap-y-2 mt-2 text-sm text-muted-foreground">
-                <div className="flex items-center">
-                  <span>Date: {mockSummary.date}</span>
-                </div>
-                <div className="flex items-center">
-                  <span>Duration: {mockSummary.duration}</span>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-md font-medium mb-2">Participants</h4>
-              <ul className="list-disc pl-5 space-y-1">
-                {mockSummary.participants.map((participant, index) => (
-                  <li key={index} className="text-sm">
-                    {participant}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-md font-medium mb-2">Key Points</h4>
-              <ul className="list-disc pl-5 space-y-2">
-                {mockSummary.keyPoints.map((point, index) => (
-                  <li key={index} className="text-sm">
-                    {point}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-md font-medium mb-2">Conclusion</h4>
-              <p className="text-sm">{mockSummary.conclusion}</p>
-            </div>
+          <div className="space-y-4">
+            {formattedSummary}
           </div>
         </ScrollArea>
       </CardContent>

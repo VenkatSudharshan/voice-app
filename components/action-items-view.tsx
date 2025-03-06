@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Download, Calendar, User } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { Badge } from "@/components/ui/badge"
+import { useMemo } from "react"
 
 // Mock action items data
 const mockActionItems = [
@@ -62,120 +63,26 @@ const mockActionItems = [
 ]
 
 interface ActionItemsViewProps {
-  className?: string
+  actionItems: string
 }
 
-export default function ActionItemsView({ className }: ActionItemsViewProps = {}) {
-  const [actionItems, setActionItems] = useState(mockActionItems)
-  const { toast } = useToast()
-
-  const toggleCompleted = (id: number) => {
-    setActionItems(actionItems.map((item) => (item.id === id ? { ...item, completed: !item.completed } : item)))
-  }
-
-  const handleExport = () => {
-    const actionItemsText = `
-# Action Items
-Date: May 3, 2025
-
-${actionItems
-  .map(
-    (item) => `
-## ${item.task}
-- Assignee: ${item.assignee}
-- Due Date: ${item.dueDate}
-- Priority: ${item.priority}
-- Status: ${item.completed ? "Completed" : "Pending"}
-`,
-  )
-  .join("\n")}
-    `.trim()
-
-    const blob = new Blob([actionItemsText], { type: "text/plain" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = "action-items.txt"
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-
-    toast({
-      title: "Action items exported",
-      description: "Your action items have been downloaded as a text file",
-    })
-  }
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "High":
-        return "bg-red-100 text-red-800 border border-red-200 font-medium"
-      case "Medium":
-        return "bg-yellow-100 text-yellow-800 border border-yellow-200 font-medium"
-      case "Low":
-        return "bg-green-100 text-green-800 border border-green-200 font-medium"
-      default:
-        return "bg-blue-100 text-blue-800 border border-blue-200 font-medium"
-    }
-  }
+export default function ActionItemsView({ actionItems }: ActionItemsViewProps) {
+  const formattedActionItems = useMemo(() => {
+    return actionItems.split('\n').map((item, index) => (
+      item.trim() && (
+        <div key={index} className="bg-muted rounded-lg p-3">
+          <p className="text-sm">{item}</p>
+        </div>
+      )
+    ))
+  }, [actionItems])
 
   return (
-    <Card className="h-[600px] flex flex-col">
-      <CardHeader className="pb-2">
-        <CardTitle className="flex justify-between items-center text-lg">
-          <span>Action Items</span>
-          <Button variant="outline" size="sm" onClick={handleExport}>
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex-1 overflow-hidden">
-        <ScrollArea className="h-[520px] pr-4">
-          <div className="space-y-4">
-            {actionItems.map((item) => (
-              <div
-                key={item.id}
-                className={`p-4 border rounded-lg transition-all duration-300 ${
-                  item.completed
-                    ? "bg-gray-100 border-gray-200"
-                    : "bg-white border-gray-200 hover:border-indigo-300 hover:shadow-md"
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <Checkbox
-                    id={`task-${item.id}`}
-                    checked={item.completed}
-                    onCheckedChange={() => toggleCompleted(item.id)}
-                    className="mt-1"
-                  />
-                  <div className="space-y-1 flex-1">
-                    <label
-                      htmlFor={`task-${item.id}`}
-                      className={`font-medium ${item.completed ? "line-through text-muted-foreground" : ""}`}
-                    >
-                      {item.task}
-                    </label>
-                    <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-                      <div className="flex items-center">
-                        <User className="h-3 w-3 mr-1" />
-                        <span>{item.assignee}</span>
-                      </div>
-                      <div className="flex items-center">
-                        <Calendar className="h-3 w-3 mr-1" />
-                        <span>{item.dueDate}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <Badge className={`${getPriorityColor(item.priority)}`}>{item.priority}</Badge>
-                </div>
-              </div>
-            ))}
-          </div>
-        </ScrollArea>
-      </CardContent>
-    </Card>
+    <ScrollArea className="h-full">
+      <div className="space-y-4 p-4">
+        {formattedActionItems}
+      </div>
+    </ScrollArea>
   )
 }
 

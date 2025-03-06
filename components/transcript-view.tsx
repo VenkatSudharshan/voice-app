@@ -9,6 +9,8 @@ import { Separator } from "@/components/ui/separator"
 import { Download, Edit, Save, UserCircle } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 
+const GEMINI_API_KEY = "AIzaSyAT0RhIoutobf_iLkppxs-vMY--PqMuZnY"
+
 // Mock transcript data
 const mockTranscript = [
   {
@@ -76,17 +78,84 @@ const mockTranscript = [
 interface TranscriptViewProps {
   className?: string
   transcriptData?: any
+  onTranscriptAnalyzed?: (summary: string, actionItems: string) => void
 }
 
-export default function TranscriptView({ className, transcriptData }: TranscriptViewProps = {}) {
+export default function TranscriptView({ className, transcriptData, onTranscriptAnalyzed }: TranscriptViewProps = {}) {
   const [transcript, setTranscript] = useState<string[]>([])
   const { toast } = useToast()
+
+  const analyzeWithGemini = async (text: string, type: 'summary' | 'action-items') => {
+    try {
+      let prompt
+      if (type === 'summary') {
+        prompt = `Please analyze the following conversation and provide a structured summary with these sections:
+          1. 📝 Main Topics Discussed
+          2. 🎯 Key Points
+          3. 🤝 Decisions Made
+          4. 📅 Next Steps
+
+          Format each section with its emoji and heading.
+          
+          Conversation:\n${text}`
+      } else {
+        prompt = `Please extract key action items from the following conversation. 
+          Format as bullet points with appropriate emojis based on the type of action (e.g., 📅 for scheduling, 
+          📝 for documentation, 📞 for calls, 📧 for emails, etc.).
+          
+          Conversation:\n${text}`
+      }
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{
+                text: prompt
+              }]
+            }]
+          })
+        }
+      )
+
+      const data = await response.json()
+      return data.candidates?.[0]?.content?.parts?.[0]?.text || `No ${type} generated`
+
+    } catch (error) {
+      console.error(`Error in ${type} generation:`, error)
+      return `Error generating ${type}. Please try again later.`
+    }
+  }
 
   useEffect(() => {
     if (transcriptData?.segments) {
       setTranscript(transcriptData.segments)
+      
+      // Analyze transcript when it's loaded
+      const fullText = transcriptData.segments.join('\n')
+      
+      Promise.all([
+        analyzeWithGemini(fullText, 'summary'),
+        analyzeWithGemini(fullText, 'action-items')
+      ]).then(([summary, actionItems]) => {
+        if (onTranscriptAnalyzed) {
+          onTranscriptAnalyzed(summary, actionItems)
+        }
+      }).catch(error => {
+        console.error('Error analyzing transcript:', error)
+        toast({
+          title: "Analysis Error",
+          description: "Failed to analyze the transcript. Please try again.",
+          variant: "destructive"
+        })
+      })
     }
-  }, [transcriptData])
+  }, [transcriptData, onTranscriptAnalyzed])
 
   const handleExport = () => {
     if (!transcript.length) return

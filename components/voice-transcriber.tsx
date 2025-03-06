@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -21,6 +21,8 @@ export default function VoiceTranscriber() {
   const [keywords, setKeywords] = useState("")
   const [hasTranscript, setHasTranscript] = useState(false)
   const [transcriptData, setTranscriptData] = useState(null)
+  const [summary, setSummary] = useState("")
+  const [actionItems, setActionItems] = useState("")
   const { toast } = useToast()
 
   const BEAM_AUTH_TOKEN = "2qhg9ZY4qEVtI6ufgv5vZTb9M98N9slut_Xc47gR0zX-lP8c4wMwJ3KLh-xPcXxUiMJxQoP5MsoDApreCFbZdw=="
@@ -77,6 +79,11 @@ export default function VoiceTranscriber() {
     setKeywords("")
     setHasTranscript(false)
   }
+
+  const handleTranscriptAnalyzed = useCallback((summary: string, actionItems: string) => {
+    setSummary(summary)
+    setActionItems(actionItems)
+  }, [])
 
   return (
     <div className="container mx-auto py-6 px-4 max-w-7xl bg-gradient-to-br from-blue-50 to-purple-50">
@@ -156,7 +163,10 @@ export default function VoiceTranscriber() {
             </CardHeader>
             <CardContent className="flex-1 overflow-hidden">
               {hasTranscript ? (
-                <TranscriptView transcriptData={transcriptData} />
+                <TranscriptView 
+                  transcriptData={transcriptData} 
+                  onTranscriptAnalyzed={handleTranscriptAnalyzed}
+                />
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-center p-6">
                   <div className="w-24 h-24 mb-6 relative floating">
@@ -186,7 +196,7 @@ export default function VoiceTranscriber() {
             </CardHeader>
             <CardContent className="flex-1 overflow-hidden">
               {hasTranscript ? (
-                <SummaryView />
+                <SummaryView summary={summary} />
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-center p-6">
                   <div className="w-24 h-24 mb-6 relative floating">
@@ -214,7 +224,7 @@ export default function VoiceTranscriber() {
             </CardHeader>
             <CardContent className="flex-1 overflow-hidden">
               {hasTranscript ? (
-                <ActionItemsView />
+                <ActionItemsView actionItems={actionItems} />
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-center p-6">
                   <div className="w-24 h-24 mb-6 relative floating">
