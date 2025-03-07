@@ -11,7 +11,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { FileUp, Copy, Check, Download } from "lucide-react"
+import { FileUp, Copy, Check, Download, Loader2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 
 // Mock templates data
@@ -281,39 +281,75 @@ For support, please contact [Support Email/Phone]`,
   },
 ]
 
-export default function TemplatesButton() {
+const GEMINI_API_KEY = "AIzaSyAT0RhIoutobf_iLkppxs-vMY--PqMuZnY"
+
+interface TemplatesButtonProps {
+  transcript: { text: string }[];
+  hasTranscript: boolean;
+  keywords?: string;
+}
+
+export default function TemplatesButton({ transcript, hasTranscript, keywords }: TemplatesButtonProps) {
   const [isOpen, setIsOpen] = useState(false)
-  const [selectedTemplate, setSelectedTemplate] = useState<number | null>(null)
-  const [copiedId, setCopiedId] = useState<number | null>(null)
-  const { toast } = useToast()
+  const [isLoading, setIsLoading] = useState(false)
+  const [convertedOutput, setConvertedOutput] = useState("")
 
-  const handleCopy = (id: number, content: string) => {
-    navigator.clipboard.writeText(content)
-    setCopiedId(id)
-    setTimeout(() => setCopiedId(null), 2000)
+  const handleConvertToTemplate = async (templateType: string) => {
+    if (!transcript.length) return;
+    setIsLoading(true);
+    console.log("Converting transcript:", transcript);
 
-    toast({
-      title: "Template copied",
-      description: "The template has been copied to your clipboard",
-    })
-  }
+    try {
+      const transcriptText = transcript.map(segment => segment.text).join('\n');
+      const templateContent = mockTemplates.find(t => t.name === templateType)?.content;
 
-  const handleExport = (name: string, content: string) => {
-    const blob = new Blob([content], { type: "text/plain" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `${name.toLowerCase().replace(/\s+/g, "-")}.md`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+      const prompt = `Context/Keywords: ${keywords || 'None provided'}
 
-    toast({
-      title: "Template exported",
-      description: "Your template has been downloaded as a markdown file",
-    })
-  }
+Convert the following transcript into the specified format. Use ONLY information from the transcript to fill in the placeholders. Do not ask for additional information.
+
+Template Format:
+${templateContent}
+
+Transcript:
+${transcriptText}
+
+Instructions:
+1. Replace all [placeholders] with actual information from the transcript
+2. Keep the markdown formatting
+3. If specific information is not available in the transcript, use "N/A" or remove that section
+4. Do not ask questions - just convert the transcript to the template format`;
+
+      console.log("Sending prompt to Gemini:", prompt);
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{
+                text: prompt
+              }]
+            }]
+          })
+        }
+      );
+
+      const data = await response.json();
+      const formattedOutput = data.candidates?.[0]?.content?.parts?.[0]?.text || 
+        "Sorry, couldn't convert the transcript.";
+      
+      setConvertedOutput(formattedOutput);
+    } catch (error) {
+      console.error('Template conversion error:', error);
+      setConvertedOutput("Error converting transcript to template format.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <>
@@ -322,6 +358,7 @@ export default function TemplatesButton() {
         size="lg"
         className="flex items-center gap-2 px-4 py-3 h-auto rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 bg-gradient-to-r from-blue-500 to-indigo-600 border-none"
         onClick={() => setIsOpen(true)}
+        disabled={!hasTranscript}
       >
         <FileUp className="h-5 w-5" />
         <span className="text-sm font-medium">Convert to Templates</span>
@@ -334,80 +371,53 @@ export default function TemplatesButton() {
             <DialogDescription>Choose a template format to convert your transcript into</DialogDescription>
           </DialogHeader>
 
-          <div className="py-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {mockTemplates.map((template) => (
-                <Button
-                  key={template.id}
-                  variant={selectedTemplate === template.id ? "default" : "outline"}
-                  className={`h-auto py-6 px-4 flex flex-col items-center justify-center text-center transition-all duration-300 ${
-                    selectedTemplate === template.id
-                      ? "bg-gradient-to-r from-blue-600 to-indigo-600 border-none shadow-md text-white"
-                      : "hover:border-blue-400 hover:bg-blue-50"
-                  }`}
-                  onClick={() => setSelectedTemplate(template.id)}
-                >
-                  <span className="font-medium mb-2 line-clamp-1">{template.name}</span>
-                  <span className="text-xs text-muted-foreground line-clamp-2 max-w-[200px]">
-                    {template.description}
-                  </span>
-                </Button>
-              ))}
-            </div>
-
-            {selectedTemplate && (
-              <>
-                <div className="mt-6">
-                  <ScrollArea className="h-[300px] w-full border rounded-md bg-muted/30 p-4">
-                    <pre className="text-sm font-mono whitespace-pre-wrap">
-                      {mockTemplates.find((t) => t.id === selectedTemplate)?.content}
-                    </pre>
-                  </ScrollArea>
-                </div>
-
-                <DialogFooter className="flex justify-between items-center mt-6">
-                  <div className="text-sm text-muted-foreground">
-                    Template will be populated with data from your transcript
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() =>
-                        handleCopy(
-                          selectedTemplate,
-                          mockTemplates.find((t) => t.id === selectedTemplate)?.content || "",
-                        )
-                      }
-                    >
-                      {copiedId === selectedTemplate ? (
-                        <>
-                          <Check className="h-4 w-4 mr-2" />
-                          Copied
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-4 w-4 mr-2" />
-                          Copy
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() =>
-                        handleExport(
-                          mockTemplates.find((t) => t.id === selectedTemplate)?.name || "",
-                          mockTemplates.find((t) => t.id === selectedTemplate)?.content || "",
-                        )
-                      }
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Export
-                    </Button>
-                  </div>
-                </DialogFooter>
-              </>
-            )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+            {mockTemplates.map((template) => (
+              <Button 
+                key={template.id}
+                onClick={() => handleConvertToTemplate(template.name)}
+                disabled={isLoading}
+                className="flex flex-col items-start p-6 h-auto text-left space-y-2 hover:bg-muted w-full bg-purple-600"
+              >
+                <h3 className="font-semibold text-white">{template.name}</h3>
+                <p className="text-sm text-white/80 line-clamp-2 w-full">{template.description}</p>
+              </Button>
+            ))}
           </div>
+
+          {isLoading && (
+            <div className="flex items-center justify-center p-4">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <span className="ml-2">Converting transcript...</span>
+            </div>
+          )}
+
+          {convertedOutput && (
+            <div className="mt-4">
+              <div className="flex justify-end mb-2">
+                <Button 
+                  onClick={() => {
+                    const blob = new Blob([convertedOutput], { type: 'text/markdown' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'converted-template.md';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Export as Markdown
+                </Button>
+              </div>
+              <ScrollArea className="p-4 border rounded-lg h-[400px]">
+                <pre className="whitespace-pre-wrap">{convertedOutput}</pre>
+              </ScrollArea>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </>

@@ -171,6 +171,7 @@ export default function VoiceTranscriber() {
                 <TranscriptView 
                   transcriptData={transcriptData} 
                   onTranscriptAnalyzed={handleTranscriptAnalyzed}
+                  keywords={keywords}
                 />
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-center p-6">
@@ -251,12 +252,17 @@ export default function VoiceTranscriber() {
           <ChatbotButton 
             transcript={transcriptData?.segments || []}
             hasTranscript={Boolean(transcriptData?.segments?.length)} 
+            keywords={keywords}
           />
         </div>
 
         {/* Templates Button - Repositioned to bottom left */}
-        <div className="fixed bottom-6 left-6 z-40">
-          <TemplatesButton />
+        <div className="fixed bottom-6 left-6 z-50">
+          <TemplatesButton 
+            transcript={transcriptData?.segments || []}
+            hasTranscript={Boolean(transcriptData?.segments?.length)}
+            keywords={keywords}
+          />
         </div>
       </div>
     </div>

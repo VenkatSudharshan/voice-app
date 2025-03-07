@@ -79,9 +79,10 @@ interface TranscriptViewProps {
   className?: string
   transcriptData?: any
   onTranscriptAnalyzed?: (summary: string, actionItems: string) => void
+  keywords?: string
 }
 
-export default function TranscriptView({ className, transcriptData, onTranscriptAnalyzed }: TranscriptViewProps = {}) {
+export default function TranscriptView({ className, transcriptData, onTranscriptAnalyzed, keywords }: TranscriptViewProps = {}) {
   const [transcript, setTranscript] = useState<string[]>([])
   const { toast } = useToast()
 
@@ -89,21 +90,25 @@ export default function TranscriptView({ className, transcriptData, onTranscript
     try {
       let prompt
       if (type === 'summary') {
-        prompt = `Please analyze the following conversation and provide a structured summary with these sections:
-          1. 📝 Main Topics Discussed
-          2. 🎯 Key Points
-          3. 🤝 Decisions Made
-          4. 📅 Next Steps
+        prompt = `Context/Keywords: ${keywords || 'None provided'}
 
-          Format each section with its emoji and heading.
-          
-          Conversation:\n${text}`
+Please analyze the following conversation and provide a structured summary with these sections:
+        1. 📝 Main Topics Discussed
+        2. 🎯 Key Points
+        3. 🤝 Decisions Made
+        4. 📅 Next Steps
+
+        Format each section with its emoji and heading.
+        
+        Conversation:\n${text}`
       } else {
-        prompt = `Please extract key action items from the following conversation. 
-          Format as bullet points with appropriate emojis based on the type of action (e.g., 📅 for scheduling, 
-          📝 for documentation, 📞 for calls, 📧 for emails, etc.).
-          
-          Conversation:\n${text}`
+        prompt = `Context/Keywords: ${keywords || 'None provided'}
+
+Please extract key action items from the following conversation. 
+        Format as bullet points with appropriate emojis based on the type of action (e.g., 📅 for scheduling, 
+        📝 for documentation, 📞 for calls, 📧 for emails, etc.).
+        
+        Conversation:\n${text}`
       }
 
       const response = await fetch(

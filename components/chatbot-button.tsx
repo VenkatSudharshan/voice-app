@@ -20,9 +20,10 @@ interface Message {
 interface ChatbotButtonProps {
   transcript: { text: string }[];  // Match the segments type
   hasTranscript: boolean;
+  keywords?: string;
 }
 
-export default function ChatbotButton({ transcript, hasTranscript }: ChatbotButtonProps) {
+export default function ChatbotButton({ transcript, hasTranscript, keywords }: ChatbotButtonProps) {
   console.log("ChatbotButton received transcript:", transcript);
 
   const [isOpen, setIsOpen] = useState(false)
@@ -49,7 +50,9 @@ export default function ChatbotButton({ transcript, hasTranscript }: ChatbotButt
     setIsLoading(true)
 
     try {
-      const prompt = `Context: The following is a transcript of a conversation/audio:
+      const prompt = `Context/Keywords: ${keywords || 'None provided'}
+
+Context: The following is a transcript of a conversation/audio:
 ${transcript}
 
 Question: ${input}
