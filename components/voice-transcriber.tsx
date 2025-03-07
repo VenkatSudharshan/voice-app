@@ -14,13 +14,17 @@ import ActionItemsView from "@/components/action-items-view"
 import ChatbotButton from "@/components/chatbot-button"
 import TemplatesButton from "@/components/templates-button"
 
+interface TranscriptData {
+  segments: { text: string }[]
+}
+
 export default function VoiceTranscriber() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [audioFile, setAudioFile] = useState<File | null>(null)
   const [audioUrl, setAudioUrl] = useState("")
   const [keywords, setKeywords] = useState("")
   const [hasTranscript, setHasTranscript] = useState(false)
-  const [transcriptData, setTranscriptData] = useState(null)
+  const [transcriptData, setTranscriptData] = useState<TranscriptData | null>(null)
   const [summary, setSummary] = useState("")
   const [actionItems, setActionItems] = useState("")
   const { toast } = useToast()
@@ -55,6 +59,7 @@ export default function VoiceTranscriber() {
       }
 
       const data = await response.json()
+      console.log("Received transcript data:", data)
       setTranscriptData(data)
       setHasTranscript(true)
       
@@ -243,7 +248,10 @@ export default function VoiceTranscriber() {
 
         {/* Floating Chatbot Button */}
         <div className="fixed bottom-6 right-6 z-50">
-          <ChatbotButton />
+          <ChatbotButton 
+            transcript={transcriptData?.segments || []}
+            hasTranscript={Boolean(transcriptData?.segments?.length)} 
+          />
         </div>
 
         {/* Templates Button - Repositioned to bottom left */}
