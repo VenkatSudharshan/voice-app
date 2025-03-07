@@ -300,7 +300,7 @@ export default function TemplatesButton({ transcript, hasTranscript, keywords }:
     console.log("Converting transcript:", transcript);
 
     try {
-      const transcriptText = transcript.map(segment => segment.text).join('\n');
+      const transcriptText = transcript;
       const templateContent = mockTemplates.find(t => t.name === templateType)?.content;
 
       const prompt = `Context/Keywords: ${keywords || 'None provided'}
